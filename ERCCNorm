@@ -1,13 +1,11 @@
 setwd("//adf/Storage/F/D/FMD523/Desktop/2108/perGeneCounts_Stage")
 files <- list.files(pattern = '\\.tab')
-
-# creating a function which reads a csv file and make a matrix
+# import data count
 readTagsPerGene <- function(x){
   out <- read.csv(x, skip = 4, header = FALSE, sep = "\t", row.names = 1,
                   col.names = c("","totalCount", "forwardCount", "reverseCount"))
   out
 }
-
 
 allReadsCounts <- lapply(files, readTagsPerGene)
 head(allReadsCounts[[1]])
@@ -23,15 +21,15 @@ setwd("//adf/Storage/F/D/FMD523/Desktop/FabioRNAseq (2)/2108/RNAseqtables/ERCC")
 gtf.with.lenghts <- read.csv('ERCC92/ERCC92.gtf', sep = '\t', header = F)
 gtf.with.lenghts <- data.frame(row.names = gtf.with.lenghts$V1, 'lenght' = gtf.with.lenghts$V5)
 
+## divide number of reads per gene by the length in kb
 norm.lenght.function <- function(x){
-  ercc.norm.length.high.pgc <- x/gtf.with.lenghts$lenght
+  x/(gtf.with.lenghts$lenght/1e3)
 }
 norm.lenght <- apply(totalReadsCount, 2, norm.lenght.function)
 
-#get normalization factors
-
-scaling.factors <- apply(totalReadsCount, 2, function(y) (sum(y))/1000000)
-# rpkm
+## get normalization factors by dividing the number of reads per gene by the total number of reads per million
+scaling.factors <- apply(totalReadsCount, 2, function(y) (sum(y))/1e6)
+## rpkm
 rpkm <- norm.lenght/scaling.factors[col(norm.lenght)]
 
 rpkm.256 <- data.frame(row.names = rownames(rpkm), 'PGC' = rpkm[,1], 'Soma' = rpkm[,2])
@@ -42,15 +40,14 @@ rpkm.256.high.PGC.Soma <- data.frame(row.names = rownames(rpkm), 'PGC' = rpkm[,1
 rpkm.256.high.Soma.PGC <- data.frame(row.names = rownames(rpkm), 'PGC' = rowMeans(as.data.frame(rpkm)[c('sHighPGC1', 'sHighPGC2')],), 'Soma' = rpkm[,2])
 rpkm.highPGC.primSoma <- data.frame(row.names = rownames(rpkm), 'PGC' = rowMeans(as.data.frame(rpkm)[c('sHighPGC1', 'sHighPGC2')],), 'Soma' = rowMeans(as.data.frame(rpkm)[c('sPrim5Soma1', 'sPrim5Soma2')],))
 
-#set treshold of 1
+## set treshold of 1
 rpkm.list <- list(rpkm.256, rpkm.high, rpkm.prim, rpkm.256.high.PGC.Soma, rpkm.256.high.Soma.PGC, rpkm.highPGC.primSoma)
 df <- function(x){
   treshold <- subset(x, x$PGC & x$Soma > 1)
 }
 treshold.all <- lapply(rpkm.list, df)
 
-# combine PGC and Soma
-
+## couple PGC and Soma
 Obs.Ratio.256 <- data.frame(row.names = rownames(treshold.all[[1]]), treshold.all[[1]]$PGC/treshold.all[[1]]$Soma)
 Obs.Ratio.high <- data.frame(row.names = rownames(treshold.all[[2]]), treshold.all[[2]]$PGC/treshold.all[[2]]$Soma)
 Obs.Ratio.prim <- data.frame(row.names = rownames(treshold.all[[3]]), treshold.all[[3]]$PGC/treshold.all[[3]]$Soma)
@@ -60,12 +57,12 @@ Obs.Ratio.PGCHigh.somaprim <- data.frame(row.names = rownames(treshold.all[[6]])
 
 Obs.Ratio.all <- list(Obs.Ratio.256, Obs.Ratio.high, Obs.Ratio.prim, Obs.Ratio.PGC256.somaHigh, Obs.Ratio.PGCHigh.soma256, Obs.Ratio.PGCHigh.somaprim)
 
-#import control file and merge obs vs expected ratio
+## import control file and merge obs vs expected ratio
 control <- read.csv('ERCC_Control_Analysis.txt', sep = '\t', header = T)
 
-#assess concentration
-#multiply concentration for the dilution factor
-#1 ul of 1:10000 dilution in 5 ng = 0.0001
+## assess concentration
+## multiply concentration for the dilution factor
+## 1 ul of 1:10000 dilution in 5 ng = 0.0001
 control$NormConcMix1 <- control$concentration.in.Mix.1..attomoles.ul.*0.0001
 control$NormConcMix2 <- control$concentration.in.Mix.2..attomoles.ul.*0.0001
 
@@ -75,7 +72,7 @@ Mix1.Mix2 <- function(x){
 }
 Mix1.Mix2.control <- lapply(Obs.Ratio.all, Mix1.Mix2)
 
-#import generate data tables
+## import generate data tables
 Exp.vs.obs.FC.256 <- data.frame(row.names = rownames(Mix1.Mix2.control[[1]]), 'Observed_FC' = Mix1.Mix2.control[[1]]$treshold.all..1...PGC.treshold.all..1...Soma, 'Expected_FC' = Mix1.Mix2.control[[1]]$expected.fold.change.ratio)
 Exp.vs.obs.FC.high <- data.frame(row.names = rownames(Mix1.Mix2.control[[2]]), 'Observed_FC' = Mix1.Mix2.control[[2]]$treshold.all..2...PGC.treshold.all..2...Soma, 'Expected_FC' = Mix1.Mix2.control[[2]]$expected.fold.change.ratio)
 Exp.vs.obs.FC.prim <- data.frame(row.names = rownames(Mix1.Mix2.control[[3]]), 'Observed_FC' = Mix1.Mix2.control[[3]]$treshold.all..3...PGC.treshold.all..3...Soma, 'Expected_FC' = Mix1.Mix2.control[[3]]$expected.fold.change.ratio)
@@ -87,7 +84,7 @@ Exp.vs.obs.FC.PGChigh.somaprim <- data.frame(row.names = rownames(Mix1.Mix2.cont
 list.exp.obs <- list(Exp.vs.obs.FC.256, Exp.vs.obs.FC.high, Exp.vs.obs.FC.prim, Exp.vs.obs.FC.PGC256.somaHigh, Exp.vs.obs.FC.PGChigh.soma256, Exp.vs.obs.FC.PGChigh.somaprim)
 list.exp.obs.titles <- c('Exp.vs.obs.FC.256', 'Exp.vs.obs.FC.high', 'Exp.vs.obs.FC.prim')
 
-#plot and correlation
+## plot and correlation
 test <- function(x){
   plot(x$Observed_FC, x$Expected_FC, pch = 16)
   abline(lm(x$Expected_FC ~ x$Observed_FC))
@@ -95,12 +92,12 @@ test <- function(x){
 }
 plot.exp.vs.obs <- lapply(list.exp.obs, test)
 
-#print correlations
+## print correlations
 for(i in list.exp.obs){
   print(cor(i$Observed_FC, i$Expected_FC))
 }
 
-#generate data.frames of dose.response
+## generate data.frames of dose.response
 control256PGC <- merge(rpkm.256, control, by.x = 0, by.y = 'ERCC.ID')
 control256PGC <- subset(control256PGC, control256PGC$PGC > 0)
 plot(log(control256PGC$PGC), log(control256PGC$concentration.in.Mix.1..attomoles.ul.), pch = 16, col = 'blue')
@@ -121,13 +118,14 @@ dose.response.PGC <- function(x){
 
 list.dose.response.PGC <- lapply(rpkm.list, dose.response.PGC)
 
-#equation of a line for concentration
-#divide all the concentration values by 0.0005 (dilution factor used in the experiment)
-#this gives concentration in attomoles/1ng of total RNA
+## equation of a line for concentration
+## divide all the concentration values by 0.0005 (dilution factor used in the experiment)
+## this gives concentration in attomoles/1ng of total RNA
 intercept <- summary(line256PGC)$coefficients[1]
 slope <- summary(line256PGC)$coefficients[2]
 value.rpkm.soma <- GermDevGenes$s256Soma1
 answer.soma <- (value.rpkm.soma - intercept)/slope
+
 #generates lists of values that can be plotted
 boxplot(conc.256.pgc.germ, conc.256.soma.germ, conc.high.pgc.germ, conc.high.soma.germ, outline = F, col = c('pale green', 'purple', 'spring green', 'purple'))
 
