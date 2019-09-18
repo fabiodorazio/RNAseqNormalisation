@@ -123,6 +123,14 @@ list.dose.response.PGC <- lapply(rpkm.list, dose.response.PGC)
 ## this gives concentration in attomoles/1ng of total RNA
 intercept <- summary(line256PGC)$coefficients[1]
 slope <- summary(line256PGC)$coefficients[2]
+
+##import rpkm of the genes of interest
+setwd('../New Analysis MBT/')
+up.pgc <- read.csv('UpregInPGCOnlyAtHigh.txt', sep = '\t')
+germ_genes <- rownames(up.pgc)
+GermDevGenes <- transcript_level_expr[germ_genes,]
+GermDevGenes <- na.omit(GermDevGenes)
+
 value.rpkm.soma <- GermDevGenes$s256Soma1
 answer.soma <- (value.rpkm.soma - intercept)/slope
 
