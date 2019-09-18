@@ -98,41 +98,51 @@ for(i in list.exp.obs){
 }
 
 ## generate data.frames of dose.response
-control256PGC <- merge(rpkm.256, control, by.x = 0, by.y = 'ERCC.ID')
-control256PGC <- subset(control256PGC, control256PGC$PGC > 0)
-plot(log(control256PGC$PGC), log(control256PGC$concentration.in.Mix.1..attomoles.ul.), pch = 16, col = 'blue')
-line256PGC <- lm(log(control256PGC$concentration.in.Mix.1..attomoles.ul.) ~ log(control256PGC$PGC))
-abline(line256PGC)
-cor(log(control256PGC$PGC), log(control256PGC$concentration.in.Mix.1..attomoles.ul.))
-
-control256soma <- merge(rpkm.256, control, by.x = 0, by.y = 'ERCC.ID')
-control256soma <- subset(control256soma, control256soma$Soma > 0)
-plot(log(control256soma$Soma), log(control256soma$concentration.in.Mix.2..attomoles.ul.), pch = 16, col = 'blue')
-line256Soma <- lm(log(control256soma$concentration.in.Mix.2..attomoles.ul.) ~ log(control256soma$Soma))
-abline(line256Soma)
-cor(log(control256soma$Soma), log(control256soma$concentration.in.Mix.2..attomoles.ul.))
-
-dose.response.PGC <- function(x){
-  dose.resp.PGC <- merge(x, control, by.x = 0, by.y = 'ERCC.ID')
+## generate calibration curve for concentration and rpkm
+#generate data.frames of dose.response
+dose.response <- function(rpkm, control = control, y, z){
+  control.dose <- merge(rpkm, control, by.x = 0, by.y = 'ERCC.ID')
+  control.dose <- subset(control.dose, control.dose[,y] > 0)
+  
+  plot(log(control.dose[,y]), log(control.dose[,z]), pch = 16, col = 'blue')
+  line.dose <- lm(log(control.dose[,z]) ~ log(control.dose[,y]))
+  abline(line.dose)
+  cor(log(control.dose[,y]), log(control.dose[,z]))
+  return(line.dose)
 }
+line256PGC1 <- dose.response(rpkm.256, control, 'PGC', 'concentration.in.Mix.1..attomoles.ul.')
+line256Soma1 <- dose.response(rpkm.256, control, 'Soma', 'concentration.in.Mix.2..attomoles.ul.')
+lineHighPGC1 <- dose.response(rpkm.high, control, 'PGC', 'concentration.in.Mix.1..attomoles.ul.')
+lineHighSoma1 <- dose.response(rpkm.high, control, 'Soma', 'concentration.in.Mix.2..attomoles.ul.')
 
-list.dose.response.PGC <- lapply(rpkm.list, dose.response.PGC)
 
-## equation of a line for concentration
-## divide all the concentration values by 0.0005 (dilution factor used in the experiment)
-## this gives concentration in attomoles/1ng of total RNA
-intercept <- summary(line256PGC)$coefficients[1]
-slope <- summary(line256PGC)$coefficients[2]
 
-##import rpkm of the genes of interest
+
+## normalise rpkm based on the equation
+## import rpkm genome-wide
 setwd('../New Analysis MBT/')
 up.pgc <- read.csv('UpregInPGCOnlyAtHigh.txt', sep = '\t')
 germ_genes <- rownames(up.pgc)
 GermDevGenes <- transcript_level_expr[germ_genes,]
 GermDevGenes <- na.omit(GermDevGenes)
 
-value.rpkm.soma <- GermDevGenes$s256Soma1
-answer.soma <- (value.rpkm.soma - intercept)/slope
+#equation of a line for concentration
+#divide all the concentration values by 0.0005 (dilution factor used in the experiment)
+#this gives concentration in attomoles/1ng of total RNA
+equation.of.line <- function(x,y){
+  intercept <- summary(x)$coefficients[1]
+  slope <- summary(x)$coefficients[2]
+
+  norm.conc.256.soma <- GermDevGenes[,y]
+  answer <- (norm.conc.256.soma - intercept)/slope
+  return(answer)
+  
+}
+conc.256.pgc.germ <- equation.of.line(line256PGC1, 's256PGC1')
+conc.256.soma.germ <- equation.of.line(line256Soma1, 's256Soma1')
+conc.high.pgc.germ <- equation.of.line(lineHighPGC1, 'sHighPGC1')
+conc.high.soma.germ <- equation.of.line(lineHighSoma1, 'sHighSoma1')
+
 
 #generates lists of values that can be plotted
 boxplot(conc.256.pgc.germ, conc.256.soma.germ, conc.high.pgc.germ, conc.high.soma.germ, outline = F, col = c('pale green', 'purple', 'spring green', 'purple'))
