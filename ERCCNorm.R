@@ -1,5 +1,11 @@
 setwd("//adf/Storage/F/D/FMD523/Desktop/2108/perGeneCounts_Stage")
 files <- list.files(pattern = '\\.tab')
+outDir<- //adf/Storage/F/D/FMD523/Desktop/2108/perGeneCounts_Stage"
+
+if(!dir.exists(file.path(outDir))){
+	dir.create(file.path(outDir))
+}
+
 # import data count
 readTagsPerGene <- function(x){
   out <- read.csv(x, skip = 4, header = FALSE, sep = "\t", row.names = 1,
