@@ -91,12 +91,12 @@ list.exp.obs <- list(Exp.vs.obs.FC.256, Exp.vs.obs.FC.high, Exp.vs.obs.FC.prim, 
 list.exp.obs.titles <- c('Exp.vs.obs.FC.256', 'Exp.vs.obs.FC.high', 'Exp.vs.obs.FC.prim')
 
 ## plot and correlation
-test <- function(x){
+plot_and_corr <- function(x){
   plot(x$Observed_FC, x$Expected_FC, pch = 16)
   abline(lm(x$Expected_FC ~ x$Observed_FC))
   
 }
-plot.exp.vs.obs <- lapply(list.exp.obs, test)
+plot.exp.vs.obs <- lapply(list.exp.obs, plot_and_corr)
 
 ## print correlations
 for(i in list.exp.obs){
