@@ -1,5 +1,5 @@
 # RNAseqNormalisation
-<b>Methods for normalising RNAseq datasets</b>
+<b>RNAseq normalisation via ERCC-spike in</b>
 
 To enable inter-sample measurements of absolute RNA amount, equal amount of bacterial RNA was spiked into each sample according to the ERCC spike-in Mix
 
